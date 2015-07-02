@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8" >
     <title>Validator Testing</title>
-    <script type="text/javascript" src="/statics/javascripts/jquery/jquery-1.11.2.js" ></script>
-    <script type="text/javascript" src="./validator-0.1.1.js" ></script>
+    <script type="text/javascript" src="/bower_components/jquery/dist/jquery.js" ></script>
+    <script type="text/javascript" src="./validator.js" ></script>
 </head>
 <body>
     <form action="" id="register">
@@ -19,111 +19,43 @@
     <button id="btn1">BUTTON 1</button>
 
     <script type="text/javascript">
-        var username_option = {
-                // required
-                "name": "username",
-                // optional
-                "rules": "username_rule_1 username_rule_2",
-                // optional boolean
-                "checkEmpty": true,
-                // optional 
-                "message": "输入用户名",
-                // optional 
-                "messageTo": "",
-                // optional
-                "required": true
-            }
+        // 自定义函数
+        // 正则表达式
+        // 非空必须
 
         var instance = validator({
-            // optional
-            rules: {
-                "username_rule_1": [function(a, b) {
-                    return a.length <= 5
-                }, ''],
-                "username_rule_2": /^[a-zA-Z]+$/
-            },
+            
             events: {
-                'isValid': function() {
-                    
-                },
-                'isValid username:rule1': function() {
+                
+            },
 
+            // optional 
+            fields: {
+                username: {
+                    // 验证规则
+                    rules: [/\w/, function() {
+                        return false;
+                    }],
+                    // 非提交为空时是否检测
+                    checkEmpty: false,
+                    // 错误信息
+                    message: '',
+                    // 错误信息显示位置
+                    messageTo: '',
+                    // 是否必须
+                    required: true
                 }
             },
-            // optional 
-            fields: [
-                username_option
-            ],  
+
             // required
-            form: '#register',
+            formSelector: '#register',
+            
             // optional
             ajaxCallback: function() {
                 return true
             }
         })
 
-        // 临时禁止验证某个字段 可多个字段用空格隔开
-        instance.disableField('username')
-        // 恢复被禁止的字段 可多个字段用空格隔开
-        instance.enableField('username')
-        // 删除验证字段 可多个字段用空格隔开
-        instance.delField('username')
-        // 添加验证字段 
-        instance.addField(username_option)
-        
-        // 监听字段某个规则验证失败
-        instance.on('noValid', 'username:username_rule_2', function(a, b) {
-            console.log('username_rule_2 failed')
-        })
-        // 监听字段某个规则验证成功
-        instance.on('isValid', 'username:username_rule_2', function(a, b) {
-            console.log('username_rule_2 success')
-        })
-        // 监听字段某个规则验证失败
-        instance.on('noValid', 'username:username_rule_1', function(a, b) {
-            console.log('username_rule_1 failed')
-        })
-        // 监听字段某个规则验证成功
-        instance.on('isValid', 'username:username_rule_1', function(a, b) {
-            console.log('username_rule_1 success')
-        })
-        
-        // 监听字段某个规则验证失败
-        instance.on('noValid', 'username:required', function(a, b) {
-            console.log('username:required failed', a)
-            return false
-        })
-        // 监听字段某个规则验证成功
-        instance.on('isValid', 'username:required', function(a, b) {
-            console.log('username:required success', a)
-        })
-        // 监听字段验证失败
-        instance.on('noValid', 'username', function(a) {
-            console.log('username failed', a)
-        })
-        // 监听字段验证成功
-        instance.on('isValid', 'username', function(a) {
-            console.log('username success', a)
-        })
-
-        // 取消默认提交
-        instance.autoSubmit = false
-        // 监听表单验证成功
-        instance.on('submit', function() {
-            // .....
-        })
-
-
-        // 手动触发验证
-        $('#btn1').click(function() {
-            instance.validate('username', true)
-        })
-
-        instance.trigger('noValid', 'username')
-
-
-
-        console.log(instance)
     </script>
 </body>
 </html>
