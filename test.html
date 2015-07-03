@@ -4,7 +4,7 @@
     <meta charset="utf-8" >
     <title>Validator Testing</title>
     <script type="text/javascript" src="/bower_components/jquery/dist/jquery.js" ></script>
-    <script type="text/javascript" src="./validator.js" ></script>
+    <script type="text/javascript" src="./yan.js" ></script>
 </head>
 <body>
     <form action="" id="register">
@@ -22,8 +22,10 @@
         // 自定义函数
         // 正则表达式
         // 非空必须
+        // 二次比对
+        // 异步验证
 
-        var instance = validator({
+        var instance = new validator({
             
             events: {
                 
@@ -35,27 +37,32 @@
                     // 验证规则
                     rules: [/\w/, function() {
                         return false;
-                    }],
+                    }, 'confirm xxx', 'server http://www.baidu.com'],
                     // 非提交为空时是否检测
                     checkEmpty: false,
                     // 错误信息
-                    message: '',
+                    message: '错哒',
                     // 错误信息显示位置
                     messageTo: '',
                     // 是否必须
-                    required: true
+                    required: true,
+
+                    // optional
+                    serverCallback: function() {
+                        return true
+                    }
                 }
             },
 
             // required
-            formSelector: '#register',
-            
-            // optional
-            ajaxCallback: function() {
-                return true
-            }
+            formSelector: '#register'
         })
 
     </script>
 </body>
 </html>
+
+
+
+
+

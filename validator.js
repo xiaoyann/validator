@@ -19,7 +19,8 @@
             autoSubmit: true
         };
 
-    function V(options) {
+    // 
+    var V = function(options) {
 
         options = $.extend(defOptions, options);
         
@@ -28,13 +29,13 @@
         // 解析字段配置
         this.addField(options.fields);
         
-        // 解析验证规则
-        this.parseRules(options.rules, this);
+        // // 解析验证规则
+        // this.parseRules(options.rules, this);
 
         // 取消默认验证
-        $form.attr('novalidate', 'novalidate');
+        // $form.attr('novalidate', 'novalidate');
 
-        $form.on('submit', {context: this}, fireSubmit);
+        // $form.on('submit', {context: this}, fireSubmit);
 
         // $form.on('change', otherSelector, this, handler);
         // $form.on('blur focus', textInputSelector, this, handler);
@@ -63,8 +64,19 @@
         deferred: [],
         
         // 添加验证字段
-        addField: function() {
+        addField: function(name, options) {
+            var _options = {};
+            
+            if (typeof name === 'string') {
+                _options[name] = options;            
+            } else {
+                _options = name;
+            }
 
+            for (name in _options) {
+                _options[name].$form = this.$form;
+                this.fields[name] = new Field(name, _options[name]);
+            }
         },
 
         // 删除验证字段
@@ -77,106 +89,8 @@
 
         },
 
-        // // 字段DOM对象
-        // $el: null,
-        // // 字段类型
-        // elType: '',
-        // // 验证规则
-        // rules: [],
-        // // 字段名
-        // fieldName: '',
-        // // 非提交为空时是否检测
-        // checkEmpty: false,
-        // // 错误信息
-        // message: '',
-        // // 错误信息显示位置
-        // messageTo: '',
-        // // 验证结果
-        // isValid: true,
-        // // 是否取消验证
-        // isDisable: false,
-        // // 是否必须
-        // required: true
-
         // 
         validate: function(fieldName, isSubmit) {
-            var conf = this.fields[fieldName], 
-                value = $.trim(conf.$el.val()),
-                rules = this.rules,
-                deferred = [], 
-                _this = this;
-
-                // 跳过 disable 的字段
-            if (conf.isDisable || 
-                // 跳过值为空并且不是必须的字段
-                (value === '' && (conf.required === false || (!isSubmit && !conf.checkEmpty))) ||
-                // 跳过验证规则为空的
-                conf.rules === '') {
-                
-                return;
-            }
-
-            // 跳过重复验证
-            if (conf.isValid === false) { 
-                this.noValidCount += 1;
-                return;
-            }
-
-            $.each(conf.rules, function(k, ruleName) {
-                var rule = rules[ruleName], ret, 
-                // 监听标识
-                target = fieldName+':'+ruleName,
-                handler = rule.handler
-
-                if (typeof handler === 'function') {
-                    ret = handler(value, rule.option.message || field.message)
-                } else if((handler = ruleHandlers[handler])) {
-                    ret = handler(value, rule.option)
-                } else {
-                    ret = false
-                }
-                
-                // 只要有一个验证返回false，就将该字段的isValid设置为false，并不再继续验证
-                // 当延迟对象执行完后应该检测isValid，如果isValid为false，那么字段的验证结果
-                // 就是false，无论延迟对象的结果是什么都不要再更新isValid。如果isValid是true，
-                // 才需要将延迟对象的结果更新到isValid
-                if (ret === false) {
-                    // 触发单个规则验证失败事件
-                    _this.trigger(evNoValid, target)
-                    return false
-                } else if (isDeferred(ret)) {
-                    deferred.push(ret)   
-                    // 验证对象失败时处理
-                    $.when(ret).fail(function() {
-                        // 触发单个规则验证失败事件
-                        _this.trigger(evNoValid, target)
-                    // 验证对象成功时处理   
-                    }).done(function(resp) {
-                        if ( _this.ajaxCallback(resp) ) {
-                            // 触发单个规则验证成功事件
-                            _this.trigger(evIsValid, target)   
-                        } else {
-                            // 触发单个规则验证失败事件
-                            _this.trigger(evNoValid, target)    
-                        }
-                    })
-                } else {
-                    // 触发单个规则验证成功事件
-                    _this.trigger(evIsValid, target)
-                }
-            })
-
-            // 更据字段的isValid判断字段的验证结果，触发相应的事件
-            // 前面已经对所有deferred的执行结果做了处理，并已更新给字段的isValid
-            // 所以这里执行时只需要检测isValid来做相应的处理
-            $.when.apply(null, deferred).done(function() {
-                if (field.isValid === true) {
-                    _this.trigger(evIsValid, fieldName)
-                }
-            });
-
-            // 收集验证时产生的延迟对象
-            this.deferred = this.deferred.concat(deferred);
         },
 
         // 
@@ -190,13 +104,7 @@
             for (fieldName in fields) {
                 this.validate(fieldName);
             }
-        },
-
-        // 
-        ajaxCallback: function() {
-
         }
-
     });
 
     function fireSubmit(ev) {
@@ -225,6 +133,189 @@
     }
 
 
+    //
+    var Field = function(name, options) {
+
+        this.$form = options.$form;
+        this.$node = $('[name='+ name +']', options.$form);
+        this.nodeType = getNodeType(this.$node);
+
+        this.parseRule(options.rules);
+
+        forEach('checkEmpty message messageTo isDisable required serverCallback'.split(' '), function(k, name) {
+            this[name] = options[name];
+        }, this);
+
+    };    
+
+    $.extend(Field.prototype, {
+        // 字段DOM对象
+        $node: null,
+        // 字段类型
+        elType: '',
+        // 验证规则
+        rules: [],
+        // 字段名
+        fieldName: '',
+        // 非提交为空时是否检测
+        checkEmpty: false,
+        // 错误信息
+        message: '',
+        // 错误信息显示位置
+        messageTo: '',
+        // 验证结果，默认为true
+        isValid: true,
+        // 是否取消验证
+        isDisable: false,
+        // 是否必须
+        required: true,
+
+        validate: function() {
+            var _this = this, 
+                deferred = [],
+                val = this.$el.val();
+
+            forEach(this.rules, function(k, rule) {
+
+                var handler = rule.handler, ret;
+
+                if (typeof handler === 'string') {
+                    ret = this[handler](rule.option, val);
+                } else {
+                    ret = handler.call(this, val);
+                }
+
+                if (ret === false) {
+                    this.validateError();
+                    return false;
+                } 
+
+                if (isDeferred(ret)) {
+                    deferred.push(ret);   
+
+                    $.when(ret).fail(function() {
+                        _this.validateError();
+
+                    }).done(function(resp) {
+                        if (!_this.serverCallback(resp)) {
+                            _this.validateError();
+                        }
+                    });
+                }
+
+            }, this);
+
+            $.when.apply(null, deferred).done(function() {
+                if (_this.isValid === true) {
+                    _this.validateSuccess();
+                }
+            });
+
+            return deferred;
+        },
+
+        validateError: function() {
+            this.isValid = false;
+        },
+
+        validateSuccess: function() {
+            this.isValid = true;
+        },
+
+        serverCallback: function() {
+            return true;
+        },
+
+        parseRule: function(options) {
+            
+            if (!$.isArray(options)) {
+                options = [options];
+            }
+
+            forEach(options, function(k, obj) {
+            
+                var t = $.type(obj), ret = {};
+
+                // 正则
+                if (t === 'regexp') {
+                    ret.handler = 'regexp';
+                    ret.option = obj;
+
+                // 自定义函数
+                } else if (t === 'function') {
+                    ret.handler = obj;
+                    ret.option = '';
+
+                } else if (t === 'string') {
+                    // 比对
+                    if (obj.indexOf('confirm') === 0) {
+                        ret.handler = 'confirm';
+                        ret.option = $(obj.split(' ')[1], this.$form);
+
+                    // 异步服务器校验
+                    } else if (obj.indexOf('server') === 0) {
+                        ret.handler = 'server';
+                        ret.option = obj.split(' ')[1];
+
+                    } else {
+                        ret.handler = 'equal';
+                        ret.option = obj;    
+                    } 
+
+                } else {
+                    ret.handler = 'equal';
+                    ret.option = obj;
+                }
+
+                this.rules.push(ret);
+
+            }, this); 
+
+        }
+
+    });
+
+    // 通用验证方法
+    $.extend(Field.prototype, {
+        // 正则表达式校验
+        regexp: function(option, val) {
+            return option.test(val);
+        },
+        // 相等校验
+        equal: function(option, val) {
+            return option === val;
+        },
+        // 二次输入是否一致校验
+        confirm: function(option, val) {
+            return option.val() === val;
+        },
+        // 异步校验
+        // 返回一个延迟对象
+        server: function(val, option) {
+            return $.ajax({
+
+            });
+        }
+    });
+
+
+
+    function isDeferred(obj) {
+        return obj && typeof obj.promise === 'function';
+    }
+
+    function forEach(obj, callback, context) {
+        if (context) {
+            return $.each(obj, $.proxy(callback, context));
+        } else {
+            return $.each(obj, callback);
+        }
+    }
+
+    function getNodeType($node) {
+        var tagName = $node[0].tagName.toUpperCase();
+        return tagName === 'INPUT' ? $node.attr('type') : tagName ;
+    }
 
     return V;
 });
