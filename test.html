@@ -4,7 +4,7 @@
     <meta charset="utf-8" >
     <title>Validator Testing</title>
     <script type="text/javascript" src="/bower_components/jquery/dist/jquery.js" ></script>
-    <script type="text/javascript" src="./yan.js" ></script>
+    <script type="text/javascript" src="./validator.js" ></script>
 </head>
 <body>
     <form action="" id="register">
@@ -28,7 +28,15 @@
         var instance = new validator({
             
             events: {
-                
+                'error:username': function(options) {
+                    console.log('username');
+                },
+                'error': function(options) {
+                    console.log(options);
+                },
+                'success': function(options) {
+                    //console.log(options);
+                }
             },
 
             // optional 
@@ -56,7 +64,14 @@
 
             // required
             formSelector: '#register'
-        })
+        });
+
+        instance.fireValidate('username');
+            
+
+
+
+
 
     </script>
 </body>

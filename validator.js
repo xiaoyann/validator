@@ -1,3 +1,12 @@
+// 1. 验证选项支持随时添加或删除
+// 2. 支持一个字段多个验证规则，不同的规则可以设置不同的错误信息
+// 3. 支持手动触发验证
+// 4. 支持自定义提交方式
+// 5. 支持监听字段验证的成功或失败
+// 6. 支持临时禁止某个字段的验证，而后可以再次激活
+// 7. 能获取form所有或单个字段数据
+// 8. 支持异步验证
+
 (function(global, factory) {
     'use strict';
 
@@ -6,62 +15,67 @@
 })(this, function($) {
     'use strict';
 
-    var defOptions = {
-            // 存放待验证的字段
-            fields: {},
-            // 存放事件配置
-            events: {},
-            // 存放验证规则
-            rules: {},
-            // 表单DOM元素选择器
-            formSelector: '',
-            // 自动提交，默认为真
-            autoSubmit: true
-        };
+    //
+    var Events = {
+                
+        listen: function(name, callback) {
+            var events = {};
+            
+            if (typeof name === 'string') {
+                events[name] = callback;
+            } else {
+                events = name;
+                name = null;
+            }
 
-    // 
+            forEach(events, function(name, callback) {
+                var _events = this._events[name] || [];
+                _events.push(callback);
+                this._events[name] = _events;
+            }, this);
+        },
+        
+        trigger: function(name) {
+            var events = this._events[name] || [],
+                args = Array.prototype.slice.call(arguments, 1),
+                l = events.length, i, callback, ret;
+            
+            for (i = 0; i < l; i++) {
+                callback = events[i];
+                if (typeof callback === 'string') {
+                    callback = this[callback];
+                }
+                ret = callback.apply(this, args);    
+            }
+
+            return ret;
+        }
+    };
+
+    //
     var V = function(options) {
 
-        options = $.extend(defOptions, options);
-        
-        var $form = this.$form = $(options.formSelector);
+        this.$form = $(options.formSelector);
 
-        // 解析字段配置
         this.addField(options.fields);
+
+        this.listen(options.events);
         
-        // // 解析验证规则
-        // this.parseRules(options.rules, this);
+        this.$form.attr('novalidate', 'novalidate');
 
-        // 取消默认验证
-        // $form.attr('novalidate', 'novalidate');
-
-        // $form.on('submit', {context: this}, fireSubmit);
-
-        // $form.on('change', otherSelector, this, handler);
-        // $form.on('blur focus', textInputSelector, this, handler);
-
-        // this.on(evNoValid, internalHandler(function(ev) {
-        //     this.fields[ev.fieldName].noValid()
-        // }))
-
+        this.$form.on('submit', $.proxy(this.fireValidate, this));
     }
 
-    $.extend(V.prototype, {
+    // 基础属性和方法
+    $.extend(V.prototype, Events, {
 
-        // 存放字段配置
+        _events: [],
+
+        // 每个字段的实例
         fields: {},
 
-        // 存放事件配置
-        events: {},
-
-        // 存放验证规则配置
-        rules: {},
-
-        // 统计验证失败的字段数量，作为表达验证成功与否的依据
-        noValidCount: 0,
-
-        // 收集异步验证规则返回的延迟对象，必须完成所有的延迟对象后才能提交
-        deferred: [],
+        // 是否自动提交
+        autoSubmit: false,
         
         // 添加验证字段
         addField: function(name, options) {
@@ -74,81 +88,116 @@
             }
 
             for (name in _options) {
+                _options[name].V = this;
                 _options[name].$form = this.$form;
                 this.fields[name] = new Field(name, _options[name]);
             }
         },
 
-        // 删除验证字段
-        delField: function() {
+        fireValidate: function (name) {
+            var fields = this.fields, 
+                deferred = [], context = this;
 
-        },
-
-        // 解析验证规则
-        parseRules: function() {
-
-        },
-
-        // 
-        validate: function(fieldName, isSubmit) {
-        },
-
-        // 
-        fireValidate: function () {
-            var fieldName, fields = this.fields;
-            // 每一轮验证开始前都要重置noValid
-            this.noValidCount = 0;
-            // 每一轮验证开始前都要重置deferred
-            this.deferred = [];
-            // 验证所有字段
-            for (fieldName in fields) {
-                this.validate(fieldName);
+            if (name && name in fields) {
+                return fields[name].validate();
             }
+            
+            for (name in fields) {
+                deferred.concat(fields[name].validate());
+            }
+
+            $.when.apply(null, deferred).then(
+                function() {
+                    var noValidCount = 0;
+
+                    for (name in fields) {
+                        noValidCount += !fields[name].isValid * 1;
+                    }
+
+                    if (noValidCount === 0) {
+                        // 触发表单
+                        context.trigger('beforeSubmit');
+                        // 提交表单
+                        if (context.autoSubmit) {
+                            context.$form[0].submit();
+                        } 
+                    } else {
+                        // context.validateError();
+                    }
+                },
+                function() {
+                    //context.validateError();
+                }
+            );
+
+            return false;
+        },
+
+        // 用于扩展方法
+        extend: function(options) {
+            $.extend(this, options);
         }
     });
 
-    function fireSubmit(ev) {
-        var context = ev.data.context;
+    // 扩展辅助方法
+    $.extend(V.protoype, {
 
-        context.fireValidate();
-
-        $.when.apply(null, context.deferred).then(
-            function() {
-                if (context.noValidCount === 0) {
-                    // 触发表单
-                    context.trigger(evSubmit);
-                    // 提交表单
-                    if (context.autoSubmit) {
-                        context.$form[0].submit();
-                    } 
-                }
-            },
-            function() {
-                // 触发表单验证失败事件
-                context.trigger(evNoValid, 'form');
+        delField: function(name) {
+            var fields = this.fields, i;
+            name = name.split(' ');
+            for (i = 0; i < name.length; i++) {
+                delete fields[name[i]];
             }
-        );
+        },
 
-        return false;
-    }
+        disableField: function(name) {
+            this.toggleDisable(name, true);
+        },
 
+        enableField: function(name) {
+            this.toggleDisable(name, false);
+        },
+
+        toggleDisable: function(name, value) {
+            var fields = this.fields, i, _name;
+            name = name.split(' ');
+            for (i = 0; (_name = name[i]) !== undefined; i++) {
+                if (_name in fields) {
+                    fields[_name].isDisable = value;
+                }
+            }
+        },
+
+        getFormData: function(name) {
+            var fields = this.fields, ret = {};
+            if (name && name in fields) {
+                return fields[name].$node.val();
+            } else {
+                foreach(fields, function(name, field) {
+                    ret[name] = field.$node.val();
+                }, this);
+            }
+            return ret;
+        }
+
+    });
 
     //
     var Field = function(name, options) {
 
-        this.$form = options.$form;
         this.$node = $('[name='+ name +']', options.$form);
         this.nodeType = getNodeType(this.$node);
+        this.fieldName = name;
 
         this.parseRule(options.rules);
 
-        forEach('checkEmpty message messageTo isDisable required serverCallback'.split(' '), function(k, name) {
+        forEach('checkEmpty message messageTo isDisable required serverCallback V $form'.split(' '), function(k, name) {
             this[name] = options[name];
         }, this);
-
+        
     };    
 
-    $.extend(Field.prototype, {
+    $.extend(Field.prototype, Events, {
         // 字段DOM对象
         $node: null,
         // 字段类型
@@ -157,7 +206,7 @@
         rules: [],
         // 字段名
         fieldName: '',
-        // 非提交为空时是否检测
+        // 为空时是否检测
         checkEmpty: false,
         // 错误信息
         message: '',
@@ -170,10 +219,22 @@
         // 是否必须
         required: true,
 
+        _events: [],
+
         validate: function() {
             var _this = this, 
                 deferred = [],
-                val = this.$el.val();
+                val = this.$node.val();
+
+                // 跳过手动取消验证的
+            if (this.isDisable || 
+                // 跳过值为空时，并且不是必须的或不检查空值
+                (val === '' && (!this.required || !this.checkEmpty)) || 
+                // 跳过没有任何验证规则的
+                this.rules === '') {
+                
+                return [];
+            }
 
             forEach(this.rules, function(k, rule) {
 
@@ -186,7 +247,7 @@
                 }
 
                 if (ret === false) {
-                    this.validateError();
+                    this.validateError(k);
                     return false;
                 } 
 
@@ -194,11 +255,11 @@
                     deferred.push(ret);   
 
                     $.when(ret).fail(function() {
-                        _this.validateError();
+                        this.validateError(k);
 
                     }).done(function(resp) {
                         if (!_this.serverCallback(resp)) {
-                            _this.validateError();
+                            this.validateError(k);
                         }
                     });
                 }
@@ -214,8 +275,10 @@
             return deferred;
         },
 
-        validateError: function() {
+        validateError: function(k) {
             this.isValid = false;
+            this.V.trigger('error:'+ this.fieldName);
+            this.V.trigger('error', this);
         },
 
         validateSuccess: function() {
@@ -298,8 +361,6 @@
         }
     });
 
-
-
     function isDeferred(obj) {
         return obj && typeof obj.promise === 'function';
     }
@@ -319,7 +380,6 @@
 
     return V;
 });
-
 
 
 
