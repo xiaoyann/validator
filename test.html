@@ -8,11 +8,18 @@
 </head>
 <body>
     <form action="" id="register">
-        <p>username: <input type="text" name="username" value="" /></p>
-        <p>email: <input type="text" name="email" value="" /></p>
-        <p>sex: <input type="radio" name="gender" value="man" />man <input type="radio" name="gender" value="woman" />woman</p>
-        <p>password: <input type="password" name="password" value="" /></p>
-        <p>confirm password: <input type="password" name="confirmpassword" value="" /></p>
+        <p>普通文本: <input type="text" name="username" value="" /></p>
+        <p>单选框: <input type="radio" name="gender" value="male" />男 <input type="radio" name="gender" value="female" />女</p>
+        <p>复选框: <input type="checkbox" name="hobby" value="2" />男孩 <input type="radio" name="hobby" value="1" />女孩</p>
+        <p>密码: <input type="password" name="password" value="" /></p>
+        <p>确认密码: <input type="password" name="confirmpassword" value="" /></p>
+        <p>下拉选择：
+            <select name="city">
+                <option value="1">北京</option>
+                <option value="2">上海</option>
+            </select> 
+        </p>
+        <p>文本域：<textarea name="desc" value></textarea></p>
         <p><input type="submit" name="dosubmit" value="提交" /></p>
     </form>
 
@@ -25,18 +32,13 @@
         // 二次比对
         // 异步验证
 
-        var instance = new validator({
+        var instance = Validator({
             
             events: {
-                'error:username': function(options) {
-                    console.log('username');
-                },
-                'error': function(options) {
-                    console.log(options);
-                },
-                'success': function(options) {
-                    //console.log(options);
-                }
+                'error:username': 'usernameError',
+                'error': 'error',
+                'success': 'success',
+                'focus:username': ''
             },
 
             // optional 
@@ -45,7 +47,7 @@
                     // 验证规则
                     rules: [/\w/, function() {
                         return false;
-                    }, 'confirm xxx', 'server http://www.baidu.com'],
+                    }, 'server http://www.baidu.com'],
                     // 非提交为空时是否检测
                     checkEmpty: false,
                     // 错误信息
@@ -54,25 +56,56 @@
                     messageTo: '',
                     // 是否必须
                     required: true,
-
                     // optional
                     serverCallback: function() {
-                        return true
+                        return true;
                     }
-                }
+                },
+                gender: {
+                    required: true,
+                    message: '错哒',
+                },
+                hobby: {
+                    required: true,
+                    message: '错哒',
+                },
+                confirmpassword: {
+                    rules: 'confirm password',
+                    message: '错哒',
+                },
+                city: {
+                    required: true,
+                    message: '错哒',
+                },
+                desc: {
+                    required: true,
+                    message: '错哒',
+                },
             },
+
+            autoSubmit: true,
 
             // required
             formSelector: '#register'
         });
 
-        instance.fireValidate('username');
+        instance.extend({
+            error: function(options) {
+                console.log(options.$node);
+                console.log(options.message);
+            },
+            
+            success: function() {
+
+            },
+
+            usernameError: function(options) {
+                options.$node.css('border', '1px solid red');
+            }
+        });
             
 
-
-
-
-
+        //instance();
     </script>
 </body>
 </html>

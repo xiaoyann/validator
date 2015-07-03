@@ -6,11 +6,23 @@
 // 6. 支持临时禁止某个字段的验证，而后可以再次激活
 // 7. 能获取form所有或单个字段数据
 // 8. 支持异步验证
+// https://github.com/striverx/validator
 
 (function(global, factory) {
     'use strict';
 
-    global.validator = factory(global.jQuery || global.Zepto || global.$);
+    if (typeof module !== 'undefined' && module.exports !== undefined) {
+        var $ = require('jquery');
+        module.exports = factory($);
+
+    } else if (typeof define === 'function' && define.amd) {
+        define(['jquery'], function($) {
+            return factory($);
+        });
+        
+    } else {
+        global.Validator = factory(global.jQuery || global.Zepto || global.$);
+    }
 
 })(this, function($) {
     'use strict';
@@ -63,7 +75,9 @@
         
         this.$form.attr('novalidate', 'novalidate');
 
-        this.$form.on('submit', $.proxy(this.fireValidate, this));
+        this.$form.on('submit', $.proxy(this.fireSubmit, this));
+
+        this.autoSubmit = 'autoSubmit' in options ? options.autoSubmit : true ;
     }
 
     // 基础属性和方法
@@ -75,7 +89,7 @@
         fields: {},
 
         // 是否自动提交
-        autoSubmit: false,
+        autoSubmit: true,
         
         // 添加验证字段
         addField: function(name, options) {
@@ -94,16 +108,21 @@
             }
         },
 
-        fireValidate: function (name) {
+        fireSubmit: function() {
+            this.fireValidate('', true);
+            return false;
+        },
+
+        fireValidate: function (name, force) {
             var fields = this.fields, 
                 deferred = [], context = this;
 
             if (name && name in fields) {
-                return fields[name].validate();
+                return fields[name].validate(force);
             }
-            
+
             for (name in fields) {
-                deferred.concat(fields[name].validate());
+                deferred.concat(fields[name].validate(force));
             }
 
             $.when.apply(null, deferred).then(
@@ -119,7 +138,7 @@
                         context.trigger('beforeSubmit');
                         // 提交表单
                         if (context.autoSubmit) {
-                            context.$form[0].submit();
+                            //context.$form[0].submit();
                         } 
                     } else {
                         // context.validateError();
@@ -129,8 +148,6 @@
                     //context.validateError();
                 }
             );
-
-            return false;
         },
 
         // 用于扩展方法
@@ -184,17 +201,42 @@
 
     //
     var Field = function(name, options) {
+        
+        var $node = $('[name='+ name +']', options.$form),
+            type = getNodeType($node);
 
-        this.$node = $('[name='+ name +']', options.$form);
-        this.nodeType = getNodeType(this.$node);
-        this.fieldName = name;
+        // 还有一些不常用类型用到时再加吧
+        if ('TEXT PASSWORD TEXTAREA EMAIL NUMBER'.indexOf(type) > -1) {
+            $node.on('blur', {context: this}, function(ev) {
+                var context = ev.data.context;
+                context.V.trigger('blur'+ context.fieldName);
+                context.validate();
+            });
+            $node.on('focus', {context: this}, function(ev) {
+                var context = ev.data.context;
+                context.V.trigger('focus'+ context.fieldName);
+            });
 
-        this.parseRule(options.rules);
+        } else if('RADIO CHECKBOX'.indexOf(type) > -1) {
+            $node.on('click tap', {context: this}, function(ev) {
+                var context = ev.data.context;
+                context.validate();
+            });
+
+        } else if('SELECT'.indexOf(type) > -1) {
+            $node.on('change', {context: this}, function(ev) {
+                var context = ev.data.context;
+                context.validate();
+            });
+        }
 
         forEach('checkEmpty message messageTo isDisable required serverCallback V $form'.split(' '), function(k, name) {
             this[name] = options[name];
         }, this);
-        
+
+        this.$node = $node;
+        this.fieldName = name;
+        this.parseRule(options.rules);
     };    
 
     $.extend(Field.prototype, Events, {
@@ -221,7 +263,7 @@
 
         _events: [],
 
-        validate: function() {
+        validate: function(force) {
             var _this = this, 
                 deferred = [],
                 val = this.$node.val();
@@ -229,9 +271,7 @@
                 // 跳过手动取消验证的
             if (this.isDisable || 
                 // 跳过值为空时，并且不是必须的或不检查空值
-                (val === '' && (!this.required || !this.checkEmpty)) || 
-                // 跳过没有任何验证规则的
-                this.rules === '') {
+                (val === '' && (!this.required || (!force && !this.checkEmpty)))) {
                 
                 return [];
             }
@@ -276,13 +316,26 @@
         },
 
         validateError: function(k) {
+            var args = {
+                name: this.fieldName,
+                $node: this.$node,
+                message: this.message,
+                messageTo: this.messageTo
+            };
+
+            if (typeof args.message !== 'string') {
+                args.message = args.message[k];
+            }
+
             this.isValid = false;
-            this.V.trigger('error:'+ this.fieldName);
-            this.V.trigger('error', this);
+            this.V.trigger('error:'+ this.fieldName, args);
+            this.V.trigger('error', args);
         },
 
         validateSuccess: function() {
             this.isValid = true;
+            this.V.trigger('success:'+ this.fieldName);
+            this.V.trigger('success', this);
         },
 
         serverCallback: function() {
@@ -290,7 +343,21 @@
         },
 
         parseRule: function(options) {
+            this.rules = [];
             
+            if (options === undefined) {
+                if (this.required) {
+                    this.rules.push({
+                        handler: 'isset'
+                    });    
+                } else {
+                    this.rules.push({
+                        handler: 'ignore'
+                    });
+                }
+                return;
+            }
+
             if (!$.isArray(options)) {
                 options = [options];
             }
@@ -352,6 +419,14 @@
         confirm: function(option, val) {
             return option.val() === val;
         },
+        //
+        isset: function(option, val) {
+            return  val !== '';
+        },
+        //
+        ignore: function(option, val) {
+            return true;
+        },
         // 异步校验
         // 返回一个延迟对象
         server: function(val, option) {
@@ -375,10 +450,13 @@
 
     function getNodeType($node) {
         var tagName = $node[0].tagName.toUpperCase();
-        return tagName === 'INPUT' ? $node.attr('type') : tagName ;
+        return tagName === 'INPUT' ? $node.attr('type').toUpperCase() : tagName ;
     }
 
-    return V;
+    return function(options) {
+        return new V(options);
+    };
+
 });
 
 
