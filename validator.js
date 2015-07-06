@@ -157,7 +157,7 @@
     });
 
     // 扩展辅助方法
-    $.extend(V.protoype, {
+    $.extend(V.prototype, {
 
         delField: function(name) {
             var fields = this.fields, i;
@@ -190,7 +190,7 @@
             if (name && name in fields) {
                 return fields[name].$node.val();
             } else {
-                foreach(fields, function(name, field) {
+                forEach(fields, function(name, field) {
                     ret[name] = field.$node.val();
                 }, this);
             }
@@ -231,7 +231,9 @@
         }
 
         forEach('checkEmpty message messageTo isDisable required serverCallback V $form'.split(' '), function(k, name) {
-            this[name] = options[name];
+            if (name in options) {
+                this[name] = options[name];
+            }
         }, this);
 
         this.$node = $node;
@@ -267,7 +269,6 @@
             var _this = this, 
                 deferred = [],
                 val = this.$node.val();
-
                 // 跳过手动取消验证的
             if (this.isDisable || 
                 // 跳过值为空时，并且不是必须的或不检查空值
