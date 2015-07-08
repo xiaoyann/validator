@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" >
+    <title>Validator Testing</title>
+    <script type="text/javascript" src="/bower_components/jquery/jquery.js" ></script>
+    <script type="text/javascript" src="../validator.js" ></script>
+    <style>
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <form action="" id="register">
+        <p>
+            普通文本: <input type="text" name="username" value="" />
+            <span class="error"></span>
+        </p>
+        <p>
+            单选框: <input type="radio" name="gender" value="male" />男 <input type="radio" name="gender" value="female" />女
+            <span class="error"></span>
+        </p>
+        <p>
+            复选框: <input type="checkbox" name="hobby" value="2" />男孩 <input type="checkbox" name="hobby" value="1" />女孩
+            <span class="error"></span>
+        </p>
+        <p>
+            密码: <input type="password" name="password" value="" />
+            <span class="error"></span>
+        </p>
+        <p>
+            确认密码: <input type="password" name="confirmpassword" value="" />
+            <span class="error"></span>
+        </p>
+        <p>下拉选择：
+            <select name="city">
+                <option value="1">北京</option>
+                <option value="2">上海</option>
+            </select> 
+            <span class="error"></span>
+        </p>
+        <p>
+            文本域：<textarea name="desc" value></textarea>
+            <span class="error"></span>
+        </p>
+        <p><input type="submit" name="dosubmit" value="提交" /></p>
+    </form>
+
+    <script type="text/javascript">
+        // 自定义函数
+        // 正则表达式
+        // 非空必须
+        // 二次比对
+        // 异步验证
+
+        var instance = Validator({
+            
+            events: {
+                'error': 'error',
+                'success': 'success',
+                'error:username': 'usernameError',
+                'focus:username': ''
+            },
+
+            // optional 
+            fields: {
+                username: {
+                    // 验证规则
+                    rules: /\w{8,20}/,
+                    // 错误信息
+                    message: '用户名错误'
+                },
+                gender: {
+                    message: '请选择您的性别'
+                },
+                hobby: {
+                    message: '请选择您的爱好',
+                },
+                confirmpassword: {
+                    rules: 'confirm [name=password]',
+                    message: '两次密码错误',
+                },
+                city: {
+                    message: '请选择城市',
+                },
+                desc: {
+                    message: '描述不能为空',
+                },
+                password: {
+                    rules: function(val) {
+                        return val.length > 6;
+                    },
+                    message: '密码错误',
+                }
+            },
+
+            autoSubmit: true,
+
+            // required
+            formSelector: '#register'
+        });
+
+        instance.extend({
+            error: function(options) {
+                options.$node.css('border', '1px solid red');
+                options.$node.next('.error').html(options.message);
+            },
+
+            success: function(options) {
+                options.$node.css('border', '1px solid #ccc');
+                options.$node.next('.error').html('');
+            },
+
+            usernameError: function(options) {
+                  
+            }
+        });
+            
+
+        //instance();
+    </script>
+</body>
+</html>
+
+
+
+
+

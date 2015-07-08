@@ -49,11 +49,10 @@
         
         trigger: function(name) {
             var events = this._events[name] || [],
-                args = Array.prototype.slice.call(arguments, 1),
-                l = events.length, i, callback, ret;
+                args = Array.prototype.slice.call(arguments, 1), 
+                i, callback, ret;
             
-            for (i = 0; i < l; i++) {
-                callback = events[i];
+            for (i = 0; (callback = events[i]); i++) {
                 if (typeof callback === 'string') {
                     callback = this[callback];
                 }
@@ -134,12 +133,13 @@
                     }
 
                     if (noValidCount === 0) {
-                        // 触发表单
+
                         context.trigger('beforeSubmit');
-                        // 提交表单
+                        
                         if (context.autoSubmit) {
-                            //context.$form[0].submit();
+                            context.$form[0].submit();
                         } 
+
                     } else {
                         // context.validateError();
                     }
@@ -276,6 +276,8 @@
                 
                 return [];
             }
+
+            this.isValid = true;
 
             forEach(this.rules, function(k, rule) {
 
