@@ -1,5 +1,5 @@
 # validator
-A simple and useful form validator.
+表单验证。
 
 ### Quick Start
 ```javascript
