@@ -8,7 +8,7 @@
 // 8. 支持异步验证
 // https://github.com/striverx/validator
 
-(function(global, factory) {
+;(function(global, factory) {
     'use strict';
 
     if (typeof module !== 'undefined' && module.exports !== undefined) {
