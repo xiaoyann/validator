@@ -202,19 +202,21 @@
     //
     var Field = function(name, options) {
         
-        var $node = $('[name='+ name +']', options.$form),
+        var $node = options.el ? $(options.el, options.$form) : $('[name='+ name +']', options.$form),
             type = getNodeType($node);
 
         // 还有一些不常用类型用到时再加吧
         if ('TEXT PASSWORD TEXTAREA EMAIL NUMBER'.indexOf(type) > -1) {
             $node.on('blur', {context: this}, function(ev) {
                 var context = ev.data.context;
-                context.V.trigger('blur'+ context.fieldName);
+                context.V.trigger('blur'+ context.fieldName, context);
+                context.V.trigger('blur', context);
                 context.validate();
             });
             $node.on('focus', {context: this}, function(ev) {
                 var context = ev.data.context;
-                context.V.trigger('focus'+ context.fieldName);
+                context.V.trigger('focus'+ context.fieldName, context);
+                context.V.trigger('focus', context);
             });
 
         } else if('RADIO CHECKBOX'.indexOf(type) > -1) {
@@ -237,6 +239,7 @@
         }, this);
 
         this.$node = $node;
+        this.elType = type;
         this.fieldName = name;
         this.parseRule(options.rules);
     };    
@@ -347,12 +350,18 @@
 
         parseRule: function(options) {
             this.rules = [];
-            
+
             if (options === undefined) {
                 if (this.required) {
-                    this.rules.push({
-                        handler: 'isset'
-                    });    
+                    if ('CHECKBOX RADIO'.indexOf(this.elType) > -1) {
+                        this.rules.push({
+                            handler: 'isChecked'
+                        });    
+                    } else {
+                        this.rules.push({
+                            handler: 'isset'
+                        });    
+                    }
                 } else {
                     this.rules.push({
                         handler: 'ignore'
@@ -427,14 +436,24 @@
             return  val !== '';
         },
         //
+        isChecked: function() {
+            var ret = false;
+            this.$node.each(function() {
+                if (this.checked) {
+                    ret = true;
+                }
+            });
+            return ret;
+        },
+        //
         ignore: function(option, val) {
             return true;
         },
         // 异步校验
         // 返回一个延迟对象
-        server: function(val, option) {
+        server: function(option, val) {
             return $.ajax({
-
+                
             });
         }
     });

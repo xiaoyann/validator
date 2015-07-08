@@ -22,7 +22,7 @@
             <span class="error"></span>
         </p>
         <p>
-            复选框: <input type="checkbox" name="hobby" value="2" />男孩 <input type="checkbox" name="hobby" value="1" />女孩
+            复选框: <input class="hobby" type="checkbox" name="hobby[]" value="2" />男孩 <input class="hobby" type="checkbox" name="hobby[]" value="1" />女孩
             <span class="error"></span>
         </p>
         <p>
@@ -35,6 +35,7 @@
         </p>
         <p>下拉选择：
             <select name="city">
+                <option value="">--请选择--</option>
                 <option value="1">北京</option>
                 <option value="2">上海</option>
             </select> 
@@ -57,10 +58,16 @@
         var instance = Validator({
             
             events: {
-                'error': 'error',
+                'error': function(options) {
+                    options.$node.css('border', '1px solid red');
+                    options.$node.next('.error').html(options.message);
+                },
                 'success': 'success',
                 'error:username': 'usernameError',
-                'focus:username': ''
+                'focus': 'success',
+                'beforeSubmit': function() {
+                    console.log(11);
+                }
             },
 
             // optional 
@@ -75,7 +82,8 @@
                     message: '请选择您的性别'
                 },
                 hobby: {
-                    message: '请选择您的爱好',
+                    el: '.hobby',
+                    message: '请选择您的爱好'
                 },
                 confirmpassword: {
                     rules: 'confirm [name=password]',
@@ -85,7 +93,8 @@
                     message: '请选择城市',
                 },
                 desc: {
-                    message: '描述不能为空',
+                    checkEmpty: true,
+                    message: '描述不能为空'
                 },
                 password: {
                     rules: function(val) {
@@ -95,25 +104,19 @@
                 }
             },
 
-            autoSubmit: true,
+            autoSubmit: false,
 
             // required
             formSelector: '#register'
         });
 
         instance.extend({
-            error: function(options) {
-                options.$node.css('border', '1px solid red');
-                options.$node.next('.error').html(options.message);
-            },
-
             success: function(options) {
                 options.$node.css('border', '1px solid #ccc');
                 options.$node.next('.error').html('');
             },
 
             usernameError: function(options) {
-                  
             }
         });
             
