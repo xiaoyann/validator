@@ -32,24 +32,24 @@ var instance = Validator(options);
 ```
 ### options.events
 支持的事件：
-`error` 验证失败
-`success` 验证成功
-`focus` 获得焦点时（只针对部分类型的INPUT）
-`blur` 失去焦点时（只针对部分类型的INPUT）
-`beforeSubmit` 验证成功后，准备提交时
+>- `error` 验证失败
+>- `success` 验证成功
+>- `focus` 获得焦点时（只针对部分类型的INPUT）
+>- `blur` 失去焦点时（只针对部分类型的INPUT）
+>- `beforeSubmit` 验证成功后，准备提交时
 
-监听字段：通过冒号连接一个字段名，给指定字段绑定事件
+>- 监听字段：通过冒号连接一个字段名，给指定字段绑定事件
 `error:fieldName`
 
 事件回调函数的两种写法：
 ①
-```
+```javascript
 events: {
     'error': function() {}
 }
 ```
 ②
-```
+```javascript
 events: {
     'error': 'error'
 }
@@ -65,26 +65,26 @@ instance.extend({
 #### `rules` 验证规则，可以是用数组配置多个规则
 支持的规则：
 >- 正则表达式
-```
+```javascript
 username: {
     rules: /\w/
 }
 ```
 >- 自定义函数
-```
+```javascript
 username: {
     rules: function(val) { return !!val; }
 }
 ```
 >- 二次对比
-```
+```javascript
 confirmPassword: {
     rules: 'confirm [name=password]'
 }
 ```
 confirm 是固定标识符，后面的是选择器，指定对比谁的值
 >- 异步服务器验证
-```
+```javascript
 username: {
     rules: 'server http://api.52dachu.com/demo.php'
 }
@@ -92,7 +92,7 @@ username: {
 server 是固定标识符，后面是接口地址
 
 规则可以用数组指定多个
-```
+```javascript
 usename: {
     rules: [
         /\w/,
@@ -103,7 +103,7 @@ usename: {
 ```
 
 #### `message` 错误信息，当有多个验证规则时，可以使用数组为每个规则指定错误信息，位置是一一对应的
-```
+```javascript
 username: {
     rules: [
         /\d/,
@@ -130,7 +130,7 @@ username: {
 ### methods
 
 `addField` 添加验证字段
-```
+```javascript
 // 用法一
 instance.addField('username', {
     rules: /\w/,
@@ -146,13 +146,13 @@ instance.addField({
 ```
 
 `delField` 删除验证字段
-```
+```javascript
 // 多个用空格隔开
 instance.delField('username');
 ```
 
 `disableField` 禁止验证字段
-```
+```javascript
 // 多个用空格隔开
 instance.disableField('username');
 ```
@@ -164,14 +164,14 @@ instance.enableField('username');
 ```
 
 `fireValidate` 触发验证
-```
+```javascript
 instance.fireValidate('username');
 ```
 
 `extend` 用于扩展
 
 `getFormData` 获取字段的值
-```
+```javascript
 var value = instance.getFormData('username');
 ```
 不指定字段获取所有已配置字段的值
