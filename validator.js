@@ -195,6 +195,10 @@
                 }, this);
             }
             return ret;
+        },
+
+        isValid: function(name) {
+            return this.fields[name].isValid;
         }
 
     });
