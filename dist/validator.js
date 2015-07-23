@@ -77,7 +77,7 @@
         this.$form.on('submit', $.proxy(this.fireSubmit, this));
 
         this.autoSubmit = 'autoSubmit' in options ? options.autoSubmit : true ;
-    }
+    };
 
     // 基础属性和方法
     $.extend(V.prototype, Events, {
