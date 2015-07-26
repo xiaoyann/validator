@@ -4,7 +4,7 @@
     <meta charset="utf-8" >
     <title>Validator Testing</title>
     <script src="../node_modules/jquery/dist/jquery.js"></script>
-    <script type="text/javascript" src="../dist/validator.min.js" ></script>
+    <script type="text/javascript" src="../src/validator.js" ></script>
     <style>
         .error {
             color: red;
@@ -65,6 +65,9 @@
                 'success': 'success',
                 'error:username': 'usernameError',
                 'focus': 'success',
+                'focus': function() {
+                    console.log(123)
+                },
                 'beforeSubmit': function() {
                     console.log(11);
                 }

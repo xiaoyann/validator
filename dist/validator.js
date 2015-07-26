@@ -203,36 +203,41 @@
 
     });
 
+    var nodeEvent = {
+        'TEXT': 'blur',
+        'PASSWORD': 'blur',
+        'TEXTAREA': 'blur',
+        'EMAIL': 'blur',
+        'NUMBER': 'blur',
+        'RADIO': 'click',
+        'CHECKBOX': 'click',
+        'SELECT': 'change',
+    };
+
+    function isTextInput(type) {
+        return 'TEXT PASSWORD TEXTAREA EMAIL NUMBER'.indexOf(type) > -1;
+    }
+
+    function triggerEvent(context, eventType) {
+        context.V.trigger(eventType + ':' + context.fieldName, context);
+        context.V.trigger(eventType, context);
+    }
+
     //
     var Field = function(name, options) {
         
         var $node = options.el ? $(options.el, options.$form) : $('[name='+ name +']', options.$form),
-            type = getNodeType($node);
+            type = getNodeType($node), eventType = nodeEvent[type];
+        
+        $node.on(eventType, {context: this, eventType: eventType}, function(ev) {
+            var context = ev.data.context;
+            triggerEvent(context, ev.data.eventType);
+            context.validate();
+        });
 
-        // 还有一些不常用类型用到时再加吧
-        if ('TEXT PASSWORD TEXTAREA EMAIL NUMBER'.indexOf(type) > -1) {
-            $node.on('blur', {context: this}, function(ev) {
-                var context = ev.data.context;
-                context.V.trigger('blur'+ context.fieldName, context);
-                context.V.trigger('blur', context);
-                context.validate();
-            });
-            $node.on('focus', {context: this}, function(ev) {
-                var context = ev.data.context;
-                context.V.trigger('focus'+ context.fieldName, context);
-                context.V.trigger('focus', context);
-            });
-
-        } else if('RADIO CHECKBOX'.indexOf(type) > -1) {
-            $node.on('click tap', {context: this}, function(ev) {
-                var context = ev.data.context;
-                context.validate();
-            });
-
-        } else if('SELECT'.indexOf(type) > -1) {
-            $node.on('change', {context: this}, function(ev) {
-                var context = ev.data.context;
-                context.validate();
+        if (isTextInput(type)) {
+            $node.on('focus', {context: this, eventType: 'focus'}, function(ev) {
+                triggerEvent(ev.data.context, ev.data.eventType);
             });
         }
 
